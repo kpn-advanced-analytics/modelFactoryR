@@ -1,6 +1,6 @@
 # modelFactoryR
 
-** How to get started with your own Model Factory: **
+**How to get started with your own Model Factory:**
 
 Note: in order to be able to use the package, you would need an Aster cluster.
 
