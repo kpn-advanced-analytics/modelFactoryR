@@ -1,5 +1,0 @@
----
-aster:
-  username: your_username
-  password: your_password
-  odbc_dsn: your_dsn_name
