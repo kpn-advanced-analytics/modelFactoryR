@@ -1,0 +1,23 @@
+Package: modelFactoryR
+Type: Package
+Title: A library for common KPN model factory methods
+Version: 1.3.3
+Authors@R: as.person(c(
+    "Chris Molanus <chris.molanus@kpn.com> [aut, cre, lyr, wdc]",
+    "Mariia Vechtomova <mariia.vechtomova@kpn.com> [aut, cst]",
+    "Hajo Forsman <hajo.forsman@kpn.com> [ctb]"
+  ))
+Description: This library was created to contain boilerplate and common code used in KPN's model factory
+Depends: R (>= 3.1.1)
+LazyData: true
+Suggests:
+    kpnr,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 5.0.1
+License: GPL-2
+Imports: TeradataAsterR,
+         yaml,
+         dplyr,
+         stringi
