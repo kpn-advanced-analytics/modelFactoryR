@@ -4,7 +4,7 @@
 \alias{storeModelScores}
 \title{Write the scores to model_factory.model_scores table}
 \usage{
-storeModelScores(id, scores)
+storeModelScores(id, scores, scores_class = NA)
 }
 \arguments{
 \item{id}{Customer identifyer}

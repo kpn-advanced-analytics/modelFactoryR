@@ -1056,13 +1056,13 @@ pullAccuracy <- function(session_id, threshold_value, threshold_type) {
 #' storeModelScores(test$passengerid,forest_output$pred)
 #' @return The result of taQuery to update the model_factory.model_scores table
 #' @export
-storeModelScores <- function(id, scores) {
-  dataset <- data.frame(id = id, scores = scores)
+storeModelScores <- function(id, scores, scores_class = NA) {
+  dataset <- data.frame(id = id, scores = scores, scores_class = scores_class)
   select_query <-
     sprintf("DROP TABLE if exists model_factory_cache.%s", tolower(paste(session_id, "scores", sep =
-                                                                    '_')))
+                                                                           '_')))
   taQuery(select_query)
-
+  
   ta.create(
     dataset,
     table = tolower(paste(session_id, "scores", sep = '_')),
@@ -1070,27 +1070,27 @@ storeModelScores <- function(id, scores) {
     tableType = "dimension",
     row.names = TRUE
   )
-
+  
   try(taQuery(
     sprintf(
       "DELETE FROM model_factory.model_scores WHERE session_id in ('%s')",
       paste(session_id,collapse='\',\'')
     )
   ),silent=TRUE)
-
+  
   insert_query <- sprintf(
     "insert into model_factory.model_scores
-    select '%s' as session_id, id, scores
+    select '%s' as session_id, id, scores, scores_class
     from model_factory_cache.%s",
     paste0(session_id),
     tolower(paste(session_id, "scores", sep = '_'))
   )
-
+  
   taQuery(insert_query)
-
+  
   select_query <-
     sprintf("DROP TABLE if exists model_factory_cache.%s", tolower(paste(session_id, "scores", sep =
-                                                                     '_')))
+                                                                           '_')))
   taQuery(select_query)
 }
 
