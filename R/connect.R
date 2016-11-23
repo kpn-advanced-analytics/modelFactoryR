@@ -26,7 +26,10 @@
 #' @export
 getTaConnection <- function() {
   # Test if the current system has kpnr config
-  if (file.exists("~/.kpnr/config.yaml")) {
+  if (file.exists(sprintf("%s\\config.yaml", Sys.getenv("MODELFACTORY")))) {
+    config <- yaml::yaml.load_file(sprintf("%s\\config.yaml", Sys.getenv("MODELFACTORY")))
+    options(kpnConfig = config)
+  } else if (file.exists("~/.kpnr/config.yaml")) {
     config <- yaml::yaml.load_file("~/.kpnr/config.yaml")
     options(kpnConfig = config)
   } else if (Sys.getenv("USER") == "jenkins"){
@@ -46,12 +49,13 @@ getTaConnection <- function() {
       )
     names(input) <- c('user_aster',
                       'password_aster',
+                      'odbc_dsn_aster',
                       'user_teradata',
                       'password_teradata')
     config <<- list()
     config$aster$username <<- levels(input$user_aster[0])
     config$aster$password <<- levels(input$password_aster[0])
-    config$aster$odbc_dsn <<- "AsterDSN"
+    config$aster$odbc_dsn <<- levels(input$odbc_dsn_aster[0])
     config$teradata$username <<- levels(input$user_teradata[0])
     config$teradata$password <<- levels(input$password_teradata[0])
     options(kpnConfig = config)
@@ -1060,9 +1064,9 @@ storeModelScores <- function(id, scores, scores_class = NA) {
   dataset <- data.frame(id = id, scores = scores, scores_class = scores_class)
   select_query <-
     sprintf("DROP TABLE if exists model_factory_cache.%s", tolower(paste(session_id, "scores", sep =
-                                                                           '_')))
+                                                                    '_')))
   taQuery(select_query)
-  
+
   ta.create(
     dataset,
     table = tolower(paste(session_id, "scores", sep = '_')),
@@ -1070,14 +1074,14 @@ storeModelScores <- function(id, scores, scores_class = NA) {
     tableType = "dimension",
     row.names = TRUE
   )
-  
+
   try(taQuery(
     sprintf(
       "DELETE FROM model_factory.model_scores WHERE session_id in ('%s')",
       paste(session_id,collapse='\',\'')
     )
   ),silent=TRUE)
-  
+
   insert_query <- sprintf(
     "insert into model_factory.model_scores
     select '%s' as session_id, id, scores, scores_class
@@ -1085,12 +1089,12 @@ storeModelScores <- function(id, scores, scores_class = NA) {
     paste0(session_id),
     tolower(paste(session_id, "scores", sep = '_'))
   )
-  
+
   taQuery(insert_query)
-  
+
   select_query <-
     sprintf("DROP TABLE if exists model_factory_cache.%s", tolower(paste(session_id, "scores", sep =
-                                                                           '_')))
+                                                                     '_')))
   taQuery(select_query)
 }
 
@@ -1560,6 +1564,7 @@ runOnAster <- function(script, mem = "unlimited")
     "SELECT * FROM stream(
     ON (select '%s' as user_aster,
     '%s' as password_aster,
+    '%s' as odbc_dsn_aster,
     '%s' as user_teradata,
     '%s' as password_teradata)
     PARTITION BY 1
@@ -1568,6 +1573,7 @@ runOnAster <- function(script, mem = "unlimited")
     MEM_LIMIT_MB ('%s'))",
     getOption("kpnConfig")$aster$username,
     getOption("kpnConfig")$aster$password,
+    getOption("kpnConfig")$aster$odbc_dsn,
     getOption("kpnConfig")$teradata$username,
     getOption("kpnConfig")$teradata$password,
     paste('Rexec',script,sep = " "),
@@ -1617,7 +1623,7 @@ renameModel <- function(old_model_id,new_model_id) {
         old_model_id
       )
     )
-  
+
   check_old_model_id1 <-
     taQuery(
       sprintf(
@@ -1652,7 +1658,7 @@ renameModel <- function(old_model_id,new_model_id) {
     )
   }
 
-  
+
   if (nrow(check_old_model_id) > 0 & nrow(check_old_model_id1) == 0)
   {
     try(taQuery(
@@ -1662,7 +1668,7 @@ renameModel <- function(old_model_id,new_model_id) {
       )
     ),silent = TRUE)
   }
-  
+
   else
   {
     try(taQuery(
