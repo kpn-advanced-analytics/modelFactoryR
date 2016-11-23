@@ -1,0 +1,8 @@
+---
+teradata:
+  username: your_username
+  password: your_password
+aster:
+  username: your_username
+  password: your_password
+  odbc_dsn: your_odbc_name
