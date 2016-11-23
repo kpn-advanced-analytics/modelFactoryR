@@ -12,11 +12,15 @@ Note: in order to be able to use the package, you would need an Aster cluster.
 
 2)	Install the package (works with  R>=3.1.1). Note! R < 3.3 is recommended (otherwiese TeradataAsterR does not work properly)
 
-3)	In R studio check your homedrive: Sys.getenv("HOMEDRIVE")
+3) create MODELFACTORY environmental variable. On Windows it can be tricky, you need to do the following:
 
-4)	In the repository you will find .kpnr.zip file. Unzip it. Put .kpnr folder that contains ONLY config.yaml file in your homedrive directory.
+  -add a system environment variable MODELFACTORY with value of folder of your choice, for example: C:\Projects;
 
-4)	In .kpnr update config.yaml file: put here your ODBC connection details.
+  -add the following line to PATH system environment variable: %MODELFACTORY%\bin;
+
+  -in command line call echo %MODELFACTORY% -> this should return the specified path
+  
+4) Copy the config.yaml file that you can find in the repository in folder specified in MODELFACTORY (e.g., C:\Projects). Fill in the config.yaml file
 
 5)	In the repository you will find an Aster_model_factory.sql file. Run the script in order to create schema's and tables so that you can use the Model factory
 
