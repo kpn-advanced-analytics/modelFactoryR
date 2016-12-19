@@ -35,7 +35,9 @@ getTaConnection <- function() {
   } else if (Sys.getenv("USER") == "jenkins"){
     config <- yaml::yaml.load_file("/etc/jenkins/config.yaml")
     options(kpnConfig = config)
-  }else{
+  } else if (class(getOption("kpnConfig")) != "NULL") {
+    config <- getOption("kpnConfig")
+  } else{
     # Assume that we are running in the streaming API on Aster
     file.in <- file(description = "stdin", open = "r")
     input <-
@@ -799,30 +801,55 @@ storeTestResults <- function(dataset) {
 #' @return Test results of existing session_id
 #' @export
 pullTestResults <- function(session_id) {
-  check_session_id <-
+  session_id <- as.character(session_id)
+  test_results <- data.frame("session_id"=character(0),
+                             "score"=numeric(0),
+                             "label"=integer(0),
+                             "population"=numeric(0),
+                             "target_population"=numeric(0),
+                             "true_positives"=numeric(0),
+                             "false_positives"=numeric(0),
+                             "true_negatives"=numeric(0),
+                             "false_negatives"=numeric(0))
+  unknown_session_id <- c()
+
+  for (i in 1:length(session_id))
+  {if (exists(paste0("test_results", session_id[[i]]))) {
+    test_results <- rbind(test_results,get(paste0("test_results", session_id[[i]])))
+  } else {
+    unknown_session_id <- append(unknown_session_id, session_id[[i]])}
+  }
+  if (length(unknown_session_id) > 0)
+  {check_session_id <-
     taQuery(
       sprintf(
-        "select * from model_factory.model_test_results where session_id in ('%s')",
-        paste(session_id,collapse='\',\'')
+        "select distinct session_id from model_factory.model_test_results where session_id in ('%s')",
+        paste(unknown_session_id,collapse='\',\'')
       )
     )
-  if (nrow(check_session_id) == 0) {
+  if (nrow(check_session_id) < length(unknown_session_id)) {
+    setdiff <- setdiff(unknown_session_id, as.character(check_session_id$session_id))
     stop(
       simpleError(
-        "Given session_id is not present in model_factory.model_test_results table"
+        sprintf("The following session_id's are missing in model_factory.model_test_results table: '%s'",
+                paste(setdiff,collapse='\',\''))
       )
     )
   } else {
-    test_results <-
+    test_results1 <-
       taQuery(
         sprintf(
           "select * from model_factory.model_test_results where session_id in ('%s')",
           paste(session_id,collapse='\',\'')
         )
       )
+    for (x in unknown_session_id)
+    {assign(paste0("test_results", x), subset(test_results1, session_id == x), envir=globalenv())}
+    test_results <- rbind(test_results,test_results1)}
+  }
     return(test_results)
   }
-}
+
 
 #' Pull ROC from model_factory.model_test_results table based on session_id
 #'
@@ -832,27 +859,52 @@ pullTestResults <- function(session_id) {
 #' @return ROC table of existing session_id
 #' @export
 pullROC <- function(session_id) {
-  check_session_id <-
-    taQuery(
-      sprintf(
-        "select * from model_factory.model_test_results where session_id in ('%s')",
-        paste(session_id,collapse='\',\'')
+  session_id <- as.character(session_id)
+  test_results <- data.frame("session_id"=character(0),
+                             "score"=numeric(0),
+                             "label"=integer(0),
+                             "population"=numeric(0),
+                             "target_population"=numeric(0),
+                             "true_positives"=numeric(0),
+                             "false_positives"=numeric(0),
+                             "true_negatives"=numeric(0),
+                             "false_negatives"=numeric(0))
+  unknown_session_id <- c()
+
+  for (i in 1:length(session_id))
+  {if (exists(paste0("test_results", session_id[[i]]))) {
+    test_results <- rbind(test_results,get(paste0("test_results", session_id[[i]])))
+  } else {
+    unknown_session_id <- append(unknown_session_id, session_id[[i]])}
+  }
+  if (length(unknown_session_id) > 0)
+  {check_session_id <-
+      taQuery(
+        sprintf(
+          "select distinct session_id from model_factory.model_test_results where session_id in ('%s')",
+          paste(unknown_session_id,collapse='\',\'')
       )
     )
-  if (nrow(check_session_id) == 0) {
+  if (nrow(check_session_id) < length(unknown_session_id)) {
+    setdiff <- setdiff(unknown_session_id, as.character(check_session_id$session_id))
     stop(
       simpleError(
-        "Given session_id is not present in model_factory.model_test_results table"
+        sprintf("The following session_id's are missing in model_factory.model_test_results table: '%s'",
+                paste(setdiff,collapse='\',\''))
       )
     )
   } else {
-    test_results <-
+    test_results1 <-
       taQuery(
         sprintf(
           "select * from model_factory.model_test_results where session_id in ('%s')",
           paste(session_id,collapse='\',\'')
         )
       )
+    for (x in unknown_session_id)
+    {assign(paste0("test_results", x), subset(test_results1, session_id == x), envir=globalenv())}
+    test_results <- rbind(test_results,test_results1)}
+  }
     roc_line <- data.frame(
       "session_id" = test_results$session_id,
       "population" = test_results$population,
@@ -867,7 +919,6 @@ pullROC <- function(session_id) {
     )
     return(roc_line)
   }
-}
 
 
 #' Pull Lift chart from model_factory.model_test_results table based on session_id
@@ -878,27 +929,52 @@ pullROC <- function(session_id) {
 #' @return Lift chart table of existing session_id
 #' @export
 pullLiftChart <- function(session_id) {
-  check_session_id <-
+  session_id <- as.character(session_id)
+  test_results <- data.frame("session_id"=character(0),
+                             "score"=numeric(0),
+                             "label"=integer(0),
+                             "population"=numeric(0),
+                             "target_population"=numeric(0),
+                             "true_positives"=numeric(0),
+                             "false_positives"=numeric(0),
+                             "true_negatives"=numeric(0),
+                             "false_negatives"=numeric(0))
+  unknown_session_id <- c()
+
+  for (i in 1:length(session_id))
+  {if (exists(paste0("test_results", session_id[[i]]))) {
+    test_results <- rbind(test_results,get(paste0("test_results", session_id[[i]])))
+  } else {
+    unknown_session_id <- append(unknown_session_id, session_id[[i]])}
+  }
+  if (length(unknown_session_id) > 0)
+  {check_session_id <-
     taQuery(
       sprintf(
-        "select * from model_factory.model_test_results where session_id in ('%s')",
-        paste(session_id,collapse='\',\'')
+        "select distinct session_id from model_factory.model_test_results where session_id in ('%s')",
+        paste(unknown_session_id,collapse='\',\'')
       )
     )
-  if (nrow(check_session_id) == 0) {
+  if (nrow(check_session_id) < length(unknown_session_id)) {
+    setdiff <- setdiff(unknown_session_id, as.character(check_session_id$session_id))
     stop(
       simpleError(
-        "Given session_id is not present in model_factory.model_test_results table"
+        sprintf("The following session_id's are missing in model_factory.model_test_results table: '%s'",
+                paste(setdiff,collapse='\',\''))
       )
     )
   } else {
-    test_results <-
+    test_results1 <-
       taQuery(
         sprintf(
           "select * from model_factory.model_test_results where session_id in ('%s')",
           paste(session_id,collapse='\',\'')
         )
       )
+    for (x in unknown_session_id)
+    {assign(paste0("test_results", x), subset(test_results1, session_id == x), envir=globalenv())}
+    test_results <- rbind(test_results,test_results1)}
+  }
     liftchart_line <-
       data.frame(
         "session_id" = test_results$session_id,
@@ -907,7 +983,6 @@ pullLiftChart <- function(session_id) {
       )
     return(liftchart_line)
   }
-}
 
 
 #' Pull Confusion matrix from model_factory.model_test_results table based on session_id, threshold_value and threshold_type
@@ -921,59 +996,52 @@ pullLiftChart <- function(session_id) {
 #' @return Confusion matrix of existing session_id defined by given threshold_value and threshold_type
 #' @export
 pullConfMatrix <- function(session_id, threshold_value, threshold_type) {
-  check_session_id <-
-    taQuery(
-      sprintf(
-        "select * from model_factory.model_test_results where session_id='%s'",
-        session_id
-      )
-    )
-  if (nrow(check_session_id) == 0)
-  {
-    stop(
-      simpleError(
-        "Given session_id is not present in model_factory.model_test_results table"
-      )
-    )
-  }
-  else {
-    test_results <-
+  if (exists(paste0("test_results", session_id))) {
+    test_results <- get(paste0("test_results", session_id))
+  } else {
+    check_session_id <-
       taQuery(
         sprintf(
-          "select * from model_factory.model_test_results where session_id='%s'",
-          session_id
+          "select distinct session_id from model_factory.model_test_results where session_id in ('%s')",
+          paste(session_id,collapse='\',\'')
         )
       )
-    if (threshold_type == "population")
-    {
-      test_results1 <- subset(test_results, population >= threshold_value)
-      p <- min(test_results1$population - threshold_value) + threshold_value
-      test_results1 <- subset(test_results1, population == p)
-    }
-
-    else if (threshold_type == "probability")
-    {
-      test_results1 <- subset(test_results, score >= threshold_value)
-      p <- min(test_results1$score - threshold_value) + threshold_value
-      test_results1 <- subset(test_results1, score == p)
-    }
-    else{
+    if (nrow(check_session_id) == 0) {
       stop(
         simpleError(
-          "Only the threshold_types \"population\" and \"probability\" are supported"
+          "Given session_id is not present in model_factory.model_test_results table"
         )
       )
-    }
-    actual_positives <-
-      c(
-        predicted_positives = test_results1$true_positives,
-        predicted_negatives = test_results1$false_negatives
-      )
-    actual_negatives <-
-      c(test_results1$false_positives,
-        test_results1$true_negatives)
-    return (rbind(actual_positives, actual_negatives))
+    } else {
+      test_results <-
+        taQuery(
+          sprintf(
+            "select * from model_factory.model_test_results where session_id in ('%s')",
+            paste(session_id,collapse='\',\'')
+          )
+        )
+      assign(paste0("test_results", session_id),test_results, envir=globalenv())}
   }
+  if (threshold_type == "population")
+  {
+    test_results1 <- subset(test_results, population <= threshold_value)
+    test_results1 <- test_results1[nrow(test_results1),]
+  }
+
+  else if (threshold_type == "probability")
+  {
+    test_results1 <- subset(test_results, score >= threshold_value)
+    test_results1 <- test_results1[nrow(test_results1),]
+  }
+  actual_positives <-
+    c(
+      predicted_positives = test_results1$true_positives,
+      predicted_negatives = test_results1$false_negatives
+    )
+  actual_negatives <-
+    c(test_results1$false_positives,
+      test_results1$true_negatives)
+  return (rbind(actual_positives, actual_negatives))
 }
 
 
@@ -988,56 +1056,56 @@ pullConfMatrix <- function(session_id, threshold_value, threshold_type) {
 #' @return Accuracy of existing session_id defined by given threshold_value and threshold_type
 #' @export
 pullAccuracy <- function(session_id, threshold_value, threshold_type) {
-  check_session_id <-
-    taQuery(
-      sprintf(
-        "select * from model_factory.model_test_results where session_id='%s'",
-        session_id
-      )
-    )
-  if (nrow(check_session_id) == 0)
-  {
-    stop(
-      simpleError(
-        "Given session_id is not present in model_factory.model_test_results table"
-      )
-    )
-  }
-  else {
-    test_results <-
+  if (exists(paste0("test_results", session_id))) {
+    test_results <- get(paste0("test_results", session_id))
+  } else {
+    check_session_id <-
       taQuery(
         sprintf(
-          "select * from model_factory.model_test_results where session_id='%s'",
-          session_id
+          "select distinct session_id from model_factory.model_test_results where session_id in ('%s')",
+          paste(session_id,collapse='\',\'')
         )
       )
-    if (threshold_type == "population")
-    {
-      test_results1 <- subset(test_results, population >= threshold_value)
-      p <- min(test_results1$population - threshold_value) + threshold_value
-      test_results1 <- subset(test_results1, population == p)
-    }
-
-    else if (threshold_type == "probability")
-    {
-      test_results1 <- subset(test_results, score >= threshold_value)
-      p <- min(test_results1$score - threshold_value) + threshold_value
-      test_results1 <- subset(test_results1, score == p)
-    }
-    else{
+    if (nrow(check_session_id) == 0) {
       stop(
         simpleError(
-          "Only the threshold_types \"population\" and \"probability\" are supported"
+          "Given session_id is not present in model_factory.model_test_results table"
         )
       )
-    }
-    accuracy = (test_results1$true_positives + test_results1$true_negatives) /
-      (
-        test_results1$true_positives + test_results1$true_negatives + test_results1$false_positives +
-          test_results1$false_negatives
-      )
-    return(accuracy)
+    } else {
+      test_results <-
+        taQuery(
+          sprintf(
+            "select * from model_factory.model_test_results where session_id in ('%s')",
+            paste(session_id,collapse='\',\'')
+          )
+        )
+      assign(paste0("test_results", session_id),test_results, envir=globalenv())}
   }
+  if (threshold_type == "population")
+  {
+    test_results1 <- subset(test_results, population <= threshold_value)
+    test_results1 <- test_results1[nrow(test_results1),]
+  }
+  else if (threshold_type == "probability")
+  {
+    test_results1 <- subset(test_results, score >= threshold_value)
+    test_results1 <- test_results1[nrow(test_results1),]
+  }
+  else{
+    stop(
+      simpleError(
+        "Only the threshold_types \"population\" and \"probability\" are supported"
+      )
+    )
+  }
+
+  accuracy = (test_results1$true_positives + test_results1$true_negatives) /
+    (
+      test_results1$true_positives + test_results1$true_negatives + test_results1$false_positives +
+        test_results1$false_negatives
+    )
+  return(accuracy)
 }
 
 
@@ -1528,7 +1596,7 @@ pullModel <- function(session_id_in){
   tryCatch({
     # Have to create temp tabe because ta.pull can only pull tables, ta.data.frames did not work
     taQuery(sprintf("DROP TABLE if exists model_factory.%s", tolower(paste(session_id_in, "model", sep = '_'))))
-    taQuery(sprintf("CREATE DIMENSION TABLE model_factory.%s AS (SELECT model FROM model_factory.model_strore WHERE session_id = '%s')",tolower(paste(session_id_in,"model",sep = '_')),session_id_in))
+    taQuery(sprintf("CREATE DIMENSION TABLE model_factory.%s AS (SELECT model FROM model_factory.model_store WHERE session_id = '%s')",tolower(paste(session_id_in,"model",sep = '_')),session_id_in))
     t_as_bin_df2 <- ta.pull(source=tolower(paste(session_id_in,"model",sep = '_')),schemaName = "model_factory",row.names = FALSE,colClasses = c("raw"))
     t_as_bin_compressed2 <- t_as_bin_df2[,1]
     t_as_bin2 <- memDecompress(t_as_bin_compressed2,"gzip")
