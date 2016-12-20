@@ -245,6 +245,7 @@ closeSession <- function() {
       session_id
     )
   )
+  ta.disconnect()
   x <- data.frame('session_id' = session_id)
   write.table(
     x, stdout(), col.names = FALSE,
@@ -816,6 +817,7 @@ pullTestResults <- function(session_id) {
   for (i in 1:length(session_id))
   {if (exists(paste0("test_results", session_id[[i]]))) {
     test_results <- rbind(test_results,get(paste0("test_results", session_id[[i]])))
+    warning("Test results for these session were already pulled and are being reused")
   } else {
     unknown_session_id <- append(unknown_session_id, session_id[[i]])}
   }
@@ -874,6 +876,7 @@ pullROC <- function(session_id) {
   for (i in 1:length(session_id))
   {if (exists(paste0("test_results", session_id[[i]]))) {
     test_results <- rbind(test_results,get(paste0("test_results", session_id[[i]])))
+    warning("Test results for these session were already pulled and are being reused")
   } else {
     unknown_session_id <- append(unknown_session_id, session_id[[i]])}
   }
@@ -944,6 +947,7 @@ pullLiftChart <- function(session_id) {
   for (i in 1:length(session_id))
   {if (exists(paste0("test_results", session_id[[i]]))) {
     test_results <- rbind(test_results,get(paste0("test_results", session_id[[i]])))
+    warning("Test results for these session were already pulled and are being reused")
   } else {
     unknown_session_id <- append(unknown_session_id, session_id[[i]])}
   }
@@ -998,6 +1002,7 @@ pullLiftChart <- function(session_id) {
 pullConfMatrix <- function(session_id, threshold_value, threshold_type) {
   if (exists(paste0("test_results", session_id))) {
     test_results <- get(paste0("test_results", session_id))
+    warning("Test results for these session were already pulled and are being reused")
   } else {
     check_session_id <-
       taQuery(
@@ -1058,6 +1063,7 @@ pullConfMatrix <- function(session_id, threshold_value, threshold_type) {
 pullAccuracy <- function(session_id, threshold_value, threshold_type) {
   if (exists(paste0("test_results", session_id))) {
     test_results <- get(paste0("test_results", session_id))
+    warning("Test results for these session were already pulled and are being reused")
   } else {
     check_session_id <-
       taQuery(
