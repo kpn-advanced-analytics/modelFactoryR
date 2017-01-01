@@ -1513,30 +1513,60 @@ pullModel <- function(session_id_in){
 #' runOnAster('test.R','1000')
 #' @return The result of taQuery to execute the installed R script. Session_id is returned as result as well
 #' @export
-runOnAster <- function(script, mem = "unlimited")
+runOnAster <- function(script, mem = "unlimited", language = 'R')
 {
-  query <- sprintf(
-    "SELECT * FROM stream(
-    ON (select '%s' as user_aster,
-    '%s' as password_aster,
-    '%s' as odbc_dsn_aster,
-    '%s' as user_teradata,
-    '%s' as password_teradata)
-    PARTITION BY 1
-    SCRIPT('%s')
-    OUTPUTS('session_id varchar(255)')
-    MEM_LIMIT_MB ('%s'))",
-    getOption("kpnConfig")$aster$username,
-    getOption("kpnConfig")$aster$password,
-    getOption("kpnConfig")$aster$odbc_dsn,
-    getOption("kpnConfig")$teradata$username,
-    getOption("kpnConfig")$teradata$password,
-    paste('Rexec',script,sep = " "),
-    mem
-  )
+  if (language == 'R') {
+    query <- sprintf(
+      "SELECT * FROM stream(
+      ON (select '%s' as user_aster,
+      '%s' as password_aster,
+      '%s' as odbc_dsn_aster,
+      '%s' as user_teradata,
+      '%s' as password_teradata)
+      PARTITION BY 1
+      SCRIPT('%s')
+      OUTPUTS('session_id varchar(255)')
+      MEM_LIMIT_MB ('%s'))",
+      getOption("kpnConfig")$aster$username,
+      getOption("kpnConfig")$aster$password,
+      getOption("kpnConfig")$aster$odbc_dsn,
+      getOption("kpnConfig")$teradata$username,
+      getOption("kpnConfig")$teradata$password,
+      paste('Rexec',script,sep = " "),
+      mem
+      )
+  }
+  else if (language == 'python') {
+    query <- sprintf(
+      "SELECT * FROM stream(
+      ON (select '%s' as user_aster,
+      '%s' as password_aster,
+      '%s' as host_aster,
+      '%s' as database_aster)
+      PARTITION BY 1
+      SCRIPT('%s')
+      OUTPUTS('session_id varchar(255)')
+      MEM_LIMIT_MB ('%s'))",
+      getOption("kpnConfig")$aster$username,
+      getOption("kpnConfig")$aster$password,
+      getOption("kpnConfig")$aster$host,
+      getOption("kpnConfig")$aster$database,
+      paste('/opt/python/python',script,sep = " "),
+      mem
+      )
+  }
+  else {
+    stop(simpleError("Only R and python are supported"))
+  }
 
   x <- taQuery(query)
-  return(substring(tail(x,1)$session_id, 3))
+  if (language == 'R') {
+    result <- substring(tail(x,1)$session_id, 3)
+  }
+  else {
+    result <- as.character(tail(x,1)$session_id)
+  }
+  return (result)
 }
 
 #' Installes the script on the Aster cluster before running it.
@@ -1551,12 +1581,29 @@ runOnAster <- function(script, mem = "unlimited")
 #' installAndRunOnAster('C:/projects/awesome_model/','save_kpn_with_less_memory.R','1000')
 #' @return The result of taQuery to execute the installed R script. Session_id is returned as result as well
 #' @export
-installAndRunOnAster <- function(path, script, mem = "unlimited")
+installAndRunOnAster <- function(path, script, mem = "unlimited", language = 'R')
 {
-  try(ta.remove.scripts(script, stopOnError = FALSE),silent = TRUE)
-  ta.install.scripts(paste(path,script,sep=""))
-  o <- runOnAster(script, mem)
-  try(ta.remove.scripts(script, stopOnError = FALSE),silent = TRUE)
+  if (language == 'R')
+  {
+    try(ta.remove.scripts(script, stopOnError = FALSE),silent = TRUE)
+    ta.install.scripts(paste(path,script,sep = ""))
+  }
+  else {
+    try(ta.remove.files(script, stopOnError = FALSE),silent = TRUE)
+    ta.install.files(paste(path,script,sep = ""))
+  }
+
+  o <- runOnAster(script, mem, language)
+
+  if (language == 'R')
+  {
+    try(ta.remove.scripts(script, stopOnError = FALSE),silent = TRUE)
+  }
+  else
+  {
+    try(ta.remove.files(script, stopOnError = FALSE),silent = TRUE)
+  }
+
   return(o)
 }
 
